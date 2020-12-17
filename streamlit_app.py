@@ -4,10 +4,11 @@ Created on Mon Dec 14 11:06:08 2020
 
 @author: Ksenia Mukhina
 """
-import numpy as np
 import streamlit as st
 import pandas as pd
 import pydeck as pdk
+import datetime
+from dateutil.relativedelta import relativedelta
 
 folder = 'data/'   
 cities = {'London, UK': 'london', 
@@ -15,6 +16,10 @@ cities = {'London, UK': 'london',
       'Vienna, Austria': 'wienna', 
       'New York City, USA': 'new-york', } #'tokyo'
 
+coordinates = {'london':(51.507222, -0.1275), 
+          'spb':(59.9375, 30.308611),
+          'wienna':(48.2, 16.366667), 
+          'new-york':(40.71274, -74.005974), }
 
 @st.cache
 def load_data(city):
@@ -43,7 +48,7 @@ def main_window(area):
         c = {}
         c['City'] = city
         c['Instagram locations'] = len(map_data)
-        c['Posts since 2016'] = sum(map_data.iloc[:, 6:].sum(axis=1))
+        c['Posts since 2017'] = sum(map_data.iloc[:, 6:].sum(axis=1))
         stats.append(c)
         
     df = pd.DataFrame(stats)
@@ -62,36 +67,45 @@ def main_window(area):
         
         st.map(load_data(cities[option]))
 
-def complex_data():
-     df = pd.DataFrame(
-         np.random.randn(1000, 2) / [50, 50] + [37.76, -122.4],
-         columns=['lat', 'lon'])
+def filter_data(map_data, date):
+    tmp = map_data[map_data[date] > 0]
+    return tmp[['lon','lat', date]]
+    
+def complex_data():     
+     option = st.selectbox(
+            'Select city',
+             list(cities.keys()), key=1)
      
-
+     map_data = load_data(cities[option])
+     
+     sl_date = st.slider('', min_value=datetime.datetime(2017, 1, 1), 
+                         max_value=datetime.datetime(2020, 1, 1), 
+                         step=datetime.timedelta(days=28))
+     date = str(sl_date.year) + '-' + str(sl_date.month)
+     
      st.pydeck_chart(pdk.Deck(
          map_style='mapbox://styles/mapbox/light-v9',
          initial_view_state=pdk.ViewState(
-             latitude=37.76,
-             longitude=-122.4,
-             zoom=11,
-             pitch=50,
+             latitude=coordinates[cities[option]][0],
+             longitude=coordinates[cities[option]][1],
+             zoom=10,
+             pitch=0,
          ),
          layers=[
              pdk.Layer(
                 'HexagonLayer',
-                data=[dict(df.iloc[x]) for x in range(len(df))],
+                data= filter_data(map_data, date),
                get_position='[lon, lat]',
                 radius=200,
-                elevation_scale=4,
-                elevation_range=[0, 1000],
+                elevation_scale=0,
                 pickable=True,
                 extruded=True,
+                color_aggregation="SUM",
+                get_color_weight=date,
              ),
     
          ],
      ))
-  #  
-      #  st.slider('', min_value=0, max_value=10)
         
 if __name__ == "__main__":
     main()
