@@ -79,7 +79,7 @@ def complex_data():
          layers=[
              pdk.Layer(
                 'HexagonLayer',
-                data=df,
+                data=[dict(df.iloc[x]) for x in range(len(df))],
                get_position='[lon, lat]',
                 radius=200,
                 elevation_scale=4,
