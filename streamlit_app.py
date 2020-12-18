@@ -21,6 +21,22 @@ coordinates = {'london':(51.507222, -0.1275),
           'wienna':(48.2, 16.366667), 
           'new-york':(40.71274, -74.005974), }
 
+def hex_to_rgb(color_string):
+    h = color_string.lstrip('#')
+    rgb_color = [int(h[i:i+2], 16) for i in (0, 2, 4)]
+    return rgb_color
+
+def date_range():
+    start = datetime.datetime(2017, 1, 1)
+    end = datetime.datetime(2020, 1, 1)
+    
+    rang = [start]
+    while start < end:
+        start += relativedelta(months=1)
+        rang.append(start)
+        
+    return rang
+          
 @st.cache
 def load_data(city):
     map_data = pd.read_csv(folder + city + '-filtered.csv')
@@ -67,8 +83,8 @@ def main_window(area):
         
         st.map(load_data(cities[option]))
 
-def filter_data(map_data, date):
-    tmp = map_data[map_data[date] > 0]
+def filter_data(map_data, date, value = 0):
+    tmp = map_data[map_data[date] > value]
     return tmp[['lon','lat', date]]
     
 def complex_data():     
@@ -78,9 +94,8 @@ def complex_data():
      
      map_data = load_data(cities[option])
      
-     sl_date = st.slider('', min_value=datetime.datetime(2017, 1, 1), 
-                         max_value=datetime.datetime(2020, 1, 1), 
-                         step=datetime.timedelta(days=28))
+     sl_date = st.select_slider('', date_range())
+
      date = str(sl_date.year) + '-' + str(sl_date.month)
      
      st.pydeck_chart(pdk.Deck(
@@ -94,18 +109,24 @@ def complex_data():
          layers=[
              pdk.Layer(
                 'HexagonLayer',
-                data= filter_data(map_data, date),
+                data= filter_data(map_data, date, 5),
                get_position='[lon, lat]',
                 radius=200,
                 elevation_scale=0,
                 pickable=True,
-                extruded=True,
+                extruded=False,
                 color_aggregation="SUM",
                 get_color_weight=date,
+                color_range=[[241,238,246],[212,185,218],[201,148,199],
+                             [223,101,176],[221,28,119],[152,0,67]]
+
              ),
     
          ],
      ))
-        
+                    #    get_fill_color=[255,0,0],
+                #"[255, (1 -" + date + "/" + str(map_data[date].max()) + ") * 255, 0]",
+              #  get_line_color=[255, 255, 255],
+             #   line_width_min_pixels=2,
 if __name__ == "__main__":
     main()
